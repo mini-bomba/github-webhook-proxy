@@ -1,0 +1,21 @@
+name: Deploy to CF workers
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - run: npm ci
+      - name: Push to workers
+        uses: cloudflare/wrangler-action@2.0.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          secrets: VERSION
+        env:
+          VERSION: ${{ github.sha }}
