@@ -1,11 +1,10 @@
 import {notFound, redirect, textResponse} from "./util";
 import webhook from "./webhook";
 
-declare global {
-	const VERSION: string
-}
 
-export interface Env {}
+export interface Env {
+	VERSION: string
+}
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -15,9 +14,9 @@ export default {
 		if (url.pathname === "/")
 			return redirect("https://github.com/mini-bomba/github-webhook-proxy");
 		if (url.pathname === "/version")
-			return textResponse(VERSION);
+			return textResponse(env.VERSION);
 		if (url.pathname === "/source")
-			return redirect(`https://github.com/mini-bomba/github-webhook-proxy/tree/${VERSION}`, true);
+			return redirect(`https://github.com/mini-bomba/github-webhook-proxy/tree/${env.VERSION}`, true);
 		return notFound();
 	},
 };
