@@ -8,14 +8,13 @@ export default async function webhook(request: Request): Promise<Response> {
     if (!webhook_regex.test(url.pathname)) // Check for valid URL
         return textResponse("Invalid discord webhook ID/token", 401);
 
-    const forwardRequest = new Request(`https://discord.com/api/webhooks/${url.pathname.substring(1)}/github`, request); // must clone ahead of time to avoid weird errors
     const event_name = request.headers.get("X-GitHub-Event");
     if (event_name !== "release") // Not a release event -> forward to discord
-        return await fetchResponse(forwardRequest);
+        return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}/github`, request);
 
     let event: ReleaseEvent;
     try {
-        event = await forwardRequest.json();
+        event = await request.json();
     } catch (e) {
         let message = "";
         if (typeof e === "string") {
@@ -27,8 +26,13 @@ export default async function webhook(request: Request): Promise<Response> {
     }
 
     if (event.action !== "published") // Not published -> forward to discord
-        return await fetchResponse(forwardRequest);
+        return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}/github`, {
+            method: "POST",
+            headers: request.headers,
+            body: JSON.stringify(event),
+        });
 
+    // release published -> create new embed with more data
     return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json;charset=UTF-8" },
