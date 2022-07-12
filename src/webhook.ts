@@ -1,16 +1,18 @@
 import { fetchResponse, textResponse } from "./util";
 import { ReleaseEvent } from "@octokit/webhooks-types";
 
-const webhook_regex = /^\/\d+\/[\w-_]+$/;
+const webhook_regex = /^\/(\d+)\/([\w-_]+)\/?(?:github)?$/;
 
 export default async function webhook(request: Request): Promise<Response> {
     const url: URL = new URL(request.url);
-    if (!webhook_regex.test(url.pathname)) // Check for valid URL
+    const [_, channel_id, webhook_token] = webhook_regex.exec(url.pathname) ?? [];
+    if (channel_id == null || webhook_token == null) // Check for valid URL
         return textResponse("Invalid discord webhook ID/token", 401);
 
+    const webhook_url = `https://discord.com/api/webhooks/${channel_id}/${webhook_token}`;
     const event_name = request.headers.get("X-GitHub-Event");
     if (event_name !== "release") // Not a release event -> forward to discord
-        return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}/github`, request);
+        return await fetchResponse(`${webhook_url}/github`, request);
 
     let event: ReleaseEvent;
     try {
@@ -26,14 +28,14 @@ export default async function webhook(request: Request): Promise<Response> {
     }
 
     if (event.action !== "published") // Not published -> forward to discord
-        return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}/github`, {
+        return await fetchResponse(`${webhook_url}/github`, {
             method: "POST",
             headers: request.headers,
             body: JSON.stringify(event),
         });
 
     // release published -> create new embed with more data
-    return await fetchResponse(`https://discord.com/api/webhooks/${url.pathname.substring(1)}`, {
+    return await fetchResponse(webhook_url, {
         method: "POST",
         headers: { "Content-Type": "application/json;charset=UTF-8" },
         body: JSON.stringify({
