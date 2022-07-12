@@ -169,6 +169,4 @@ dist
 # wrangler project
 
 .dev.vars
-
-# ignore WebStorm config
 .idea
