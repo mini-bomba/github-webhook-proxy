@@ -3,17 +3,9 @@ import { ReleaseEvent } from "@octokit/webhooks-types";
 
 const webhook_regex = /^\/(\d+)\/([\w-_]+)\/?(?:github)?$/;
 
-export default async function webhook(request: Request): Promise<Response> {
+
+async function handleReleaseEvent(request: Request, webhook_url: string): Promise<Response> {
     const url: URL = new URL(request.url);
-    const [_, channel_id, webhook_token] = webhook_regex.exec(url.pathname) ?? [];
-    if (channel_id == null || webhook_token == null) // Check for valid URL
-        return textResponse("Invalid discord webhook ID/token", 401);
-
-    const webhook_url = `https://discord.com/api/webhooks/${channel_id}/${webhook_token}`;
-    const event_name = request.headers.get("X-GitHub-Event");
-    if (event_name !== "release") // Not a release event -> forward to discord
-        return await fetchResponse(`${webhook_url}/github`, request);
-
     let event: ReleaseEvent;
     try {
         event = await request.json();
@@ -55,4 +47,21 @@ export default async function webhook(request: Request): Promise<Response> {
             }],
         }),
     });
+}
+
+export default async function webhook(request: Request): Promise<Response> {
+    const url: URL = new URL(request.url);
+    const [_, channel_id, webhook_token] = webhook_regex.exec(url.pathname) ?? [];
+    if (channel_id == null || webhook_token == null) // Check for valid URL
+        return textResponse("Invalid discord webhook ID/token", 401);
+
+    const webhook_url = `https://discord.com/api/webhooks/${channel_id}/${webhook_token}`;
+    const event_name = request.headers.get("X-GitHub-Event");
+
+    switch(event_name) {
+        case "release":
+            return await handleReleaseEvent(request, webhook_url);
+        default:
+            return await fetchResponse(`${webhook_url}/github`, request);
+    }
 }
