@@ -1,5 +1,5 @@
 import { fetchResponse, textResponse } from "./util";
-import { ReleaseEvent } from "@octokit/webhooks-types";
+import { IssuesEvent, ReleaseEvent } from "@octokit/webhooks-types";
 
 const webhook_regex = /^\/(\d+)\/([\w-_]+)\/?(?:github)?$/;
 
@@ -49,6 +49,64 @@ async function handleReleaseEvent(request: Request, webhook_url: string): Promis
     });
 }
 
+async function handleIssueEvent(request: Request, webhook_url: string): Promise<Response> {
+    let event: IssuesEvent;
+    try {
+        event = await request.json();
+    } catch (e) {
+        let message = "";
+        if (typeof e === "string") {
+            message = e;
+        } else if (e instanceof Error) {
+            message = e.message;
+        }
+        return textResponse(`Error while parsing input JSON: ${message}`, 400);
+    }
+    
+    let action: string;
+    let color: number;
+    switch(event.action) {
+        case "reopened":
+            action = "reopened";
+            color = 0x1f883d;
+            break;
+        case "closed":
+            action = `closed as ${event.issue.state_reason!.replaceAll('_', ' ')}`;
+            if (event.issue.state_reason === "not_planned") {
+                color = 0x212830;
+            } else {
+                color = 0x8250df;
+            }
+            break;
+        // some other action type we don't want to modify
+        default:
+            return await fetchResponse(`${webhook_url}/github`, {
+                method: "POST",
+                headers: request.headers,
+                body: JSON.stringify(event),
+            });
+    }
+    
+    return await fetchResponse(webhook_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json;charset=UTF-8" },
+        body: JSON.stringify({
+            username: "GitHub",
+            avatar_url: "https://cdn.discordapp.com/attachments/743515515799994489/996513463650226327/unknown.png",
+            embeds: [{
+                author: {
+                    name: event.sender.login,
+                    url: event.sender.html_url,
+                    icon_url: event.sender.avatar_url,
+                },
+                title: `[${event.repository.full_name}] Issue ${action}: #${event.issue.number} ${event.issue.title}`,
+                url: event.issue.html_url,
+                color,
+            }],
+        }),
+    });
+}
+
 export default async function webhook(request: Request): Promise<Response> {
     const url: URL = new URL(request.url);
     const [_, channel_id, webhook_token] = webhook_regex.exec(url.pathname) ?? [];
@@ -61,6 +119,8 @@ export default async function webhook(request: Request): Promise<Response> {
     switch(event_name) {
         case "release":
             return await handleReleaseEvent(request, webhook_url);
+        case "issues":
+            return await handleIssueEvent(request, webhook_url);
         default:
             return await fetchResponse(`${webhook_url}/github`, request);
     }
