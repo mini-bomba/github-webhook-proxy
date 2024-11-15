@@ -35,5 +35,7 @@ It currently intercepts and improves the following events:
   - adds colors associated with these actions
 
 ## some images i guess
+### issue events
 ![comparison of issue events](docs/comparison1.png)
+### PR and release events
 ![comparison of PR and release events](docs/comparison2.png)
