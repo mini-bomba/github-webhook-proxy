@@ -33,3 +33,7 @@ It currently intercepts and improves the following events:
   - differentiates between closing and merging the PR
   - sends messages when a PR is marked as draft or ready for review
   - adds colors associated with these actions
+
+## some images i guess
+![comparison of issue events](docs/comparison1.png)
+![comparison of PR and release events](docs/comparison2.png)
