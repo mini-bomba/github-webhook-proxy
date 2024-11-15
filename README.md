@@ -20,6 +20,16 @@ color specifies embed color for the release created event
 Grab a discord webhook URL and replace `https://discord.com/api/webhooks` with `https://github-webhook-proxy.minibomba.workers.dev` (or your own instance URL)
 
 ## Why
-Discord doesn't put release descriptions from GitHub webhook payloads into embeds, this exists to fix that.
+Discord's GitHub webhook support isn't great. It doesn't attach release descriptions to messages about them being created, it can't differentiate between a PR getting closed and it getting merged, it doesn't know about the different issue close reasons.
+This project was created to mitiage some of these issues.
 
-It currently only modifies release created events.
+It currently intercepts and improves the following events:
+- release creation
+  - adds the release description and timestamp into the message
+- issue closing/reopening
+  - includes the reason for closing the issue (completed/not planned)
+  - adds colors associated with the different close reasons and reopening the issue
+- pull requests
+  - differentiates between closing and merging the PR
+  - sends messages when a PR is marked as draft or ready for review
+  - adds colors associated with these actions
