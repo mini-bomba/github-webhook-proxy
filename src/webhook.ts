@@ -1,5 +1,5 @@
-import { fetchResponse, textResponse } from "./util";
-import { IssuesEvent, PullRequestEvent, ReleaseEvent } from "@octokit/webhooks-types";
+import { baseResponse, fetchResponse, textResponse } from "./util";
+import { IssuesEvent, PullRequestEvent, PullRequestReviewEvent, ReleaseEvent } from "@octokit/webhooks-types";
 
 const webhook_regex = /^\/(\d+)\/([\w-_]+)\/?(?:github)?$/;
 
@@ -174,6 +174,33 @@ async function handlePREvent(request: Request, webhook_url: string): Promise<Res
     });
 }
 
+async function handlePRReviewEvent(request: Request, webhook_url: string): Promise<Response> {
+    let event: PullRequestReviewEvent;
+    try {
+        event = await request.json();
+    } catch (e) {
+        let message = "";
+        if (typeof e === "string") {
+            message = e;
+        } else if (e instanceof Error) {
+            message = e.message;
+        }
+        return textResponse(`Error while parsing input JSON: ${message}`, 400);
+    }
+
+    // these are sent when a comment is added to the review
+    // discord does not know this
+    if (event.review.state === "commented") {
+        return baseResponse(undefined, 204);
+    }
+
+    return await fetchResponse(`${webhook_url}/github`, {
+        method: "POST",
+        headers: request.headers,
+        body: JSON.stringify(event),
+    });
+}
+
 export default async function webhook(request: Request): Promise<Response> {
     const url: URL = new URL(request.url);
     const [_, channel_id, webhook_token] = webhook_regex.exec(url.pathname) ?? [];
@@ -190,6 +217,8 @@ export default async function webhook(request: Request): Promise<Response> {
             return await handleIssueEvent(request, webhook_url);
         case "pull_request":
             return await handlePREvent(request, webhook_url);
+        case "pull_request_review":
+            return await handlePRReviewEvent(request, webhook_url);
         default:
             return await fetchResponse(`${webhook_url}/github`, request);
     }

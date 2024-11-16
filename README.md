@@ -33,6 +33,8 @@ It currently intercepts and improves the following events:
   - differentiates between closing and merging the PR
   - sends messages when a PR is marked as draft or ready for review
   - adds colors associated with these actions
+  - blocks "Pull request review submitted" events when someone comments on a review
+    - review comment content will still be sent to discord if pull_request_review_comment event is enabled. this simply removes the noise
 
 ## some images i guess
 ### issue events
