@@ -1,4 +1,10 @@
 # github-webhook-proxy
+
+> [!WARNING]
+> This repo is deprecated in favour of [github-webhook-enhancer-deno](https://github.com/mini-bomba/github-webhook-enhancer-deno).
+> Recently I've started having issues with discord blocking cloudflare workers IPs, which often resulted in dropped events.
+> Due to this, I've decided to reorganize this project in a way that allows it to be selfhosted with deno, which hopefully will resolve this issue.
+
 A WebWorker that proxies webhook payloads between GitHub and Discord,
 adding extra data for some events.
 
